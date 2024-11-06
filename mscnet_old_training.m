@@ -21,26 +21,36 @@ augimdsValidation = augmentedImageDatastore(params.image_size, XValidation, TVal
 layers = [
     imageInputLayer([32 32 3])
     
-    convolution2dLayer(3,8,Padding="same")
+    convolution2dLayer(5,32,Padding="same")
     batchNormalizationLayer
-    reluLayer
+    leakyReluLayer
     
-    maxPooling2dLayer(2,Stride=2)
+    maxPooling2dLayer(2, Stride=2)
     
-    convolution2dLayer(3,16,Padding="same")
+    convolution2dLayer(3,64, Padding="same")
     batchNormalizationLayer
-    reluLayer
+    leakyReluLayer
+    dropoutLayer(0.4)
     
-    maxPooling2dLayer(2,Stride=2)
-    
-    convolution2dLayer(3,32,Padding="same")
+    convolution2dLayer(3,128, Padding="same")
     batchNormalizationLayer
-    reluLayer
+    leakyReluLayer
+    
+    maxPooling2dLayer(2, Stride=2)
+    
+    convolution2dLayer(3,256, Padding="same")
+    batchNormalizationLayer
+    leakyReluLayer
+    dropoutLayer(0.4)
+    
+    fullyConnectedLayer(512)
+    leakyReluLayer
+    dropoutLayer(0.5)
     
     fullyConnectedLayer(10)
     softmaxLayer
     classificationLayer
-    ];
+];
 
 % Training options
 valFrequency = floor(size(XTrain, 4) / params.train.mini_batch_size);
@@ -61,13 +71,19 @@ options = trainingOptions(params.train.optimization_algorithm, ...
 
 net = trainNetwork(augimdsTrain,layers,options);
 
-save('trained_mcinet_20_epochs.mat', 'net');
+save('trained_mcinet_new_arch.mat', 'net');
 
+% validation
 pred = classify(net, XValidation);
 validationError = mean(pred ~= TValidation);
 disp("Validation error: " + validationError*100 + "%")
 validationAccuracy = mean(pred == TValidation);
 disp("Validation Accuracy: " + validationAccuracy*100 + "%")
+Tpred = classify(net, XTrain);
+trainError = mean(Tpred ~= TTrain);
+disp("Train error: " + trainError*100 + "%")
+trainAccuracy = mean(Tpred == TTrain);
+disp("Train Accuracy: " + trainAccuracy*100 + "%")
 
 cm = confusionchart(TValidation,pred);
 cm.Title = "Confusion Matrix for Validation Data";
